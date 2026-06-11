@@ -16,7 +16,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Flatpak
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flatpak flatpak-builder
+          flatpak --version
+          flatpak-builder --version
+
+      - name: Add Flathub remote
+        run: flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      - name: Build Flatpak
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: Strecs3D.flatpak
@@ -24,8 +34,6 @@ jobs:
           cache-key: flatpak-builder-${{ github.sha }}
           restore-cache: true
           build-bundle: true
-          build-type: app
-          app-id: com.github.tomohiron907.Strecs3D
 
       - name: Upload Flatpak artifact
         uses: actions/upload-artifact@v4
