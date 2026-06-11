@@ -12,6 +12,10 @@ finish-args:
   - --device=dri
   - --filesystem=home
 
+build-options:
+  env:
+    CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+
 modules:
   - name: libb2
     buildsystem: simple
@@ -91,6 +95,8 @@ modules:
       - -DBUILD_SHARED_LIBS=ON
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_INCLUDEDIR=include/lib3mf
+      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      - -DLIB3MF_TESTS=OFF
     sources:
       - type: git
         url: https://github.com/3MFConsortium/lib3mf.git
