@@ -1,0 +1,65 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  flatpak:
+    name: Flatpak Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: Strecs3D.flatpak
+          manifest-path: com.github.tomohiron907.Strecs3D.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          restore-cache: true
+          build-bundle: true
+          build-type: app
+          app-id: com.github.tomohiron907.Strecs3D
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Strecs3D-x86_64
+          path: Strecs3D.flatpak
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: [flatpak]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Strecs3D-x86_64
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Strecs3D Flatpak ${{ github.ref_name }}
+          body: |
+            Flatpak build of Strecs3D ${{ github.ref_name }}
+
+            ## Installation
+            ```bash
+            flatpak install Strecs3D.flatpak
+            ```
+
+            ## Running
+            ```bash
+            flatpak run com.github.tomohiron907.Strecs3D
+            ```
+          files: Strecs3D.flatpak
+          generate_release_notes: true
