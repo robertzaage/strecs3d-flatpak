@@ -1,0 +1,103 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 54e2fb1..b035ea4 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -34,8 +34,8 @@ if(WIN32)
+   include(cmake/windows_settings.cmake)
+ elseif(APPLE)
+   include(cmake/macos_settings.cmake)
+-else()
+-  message(FATAL_ERROR "Unsupported operating system. Only Windows and macOS are supported.")
++elseif(UNIX)
++  include(cmake/linux_settings.cmake)
+ endif()
+ 
+ # 共通設定をインクルード
+diff --git a/UI/platform/linux/WindowUtils.cpp b/UI/platform/linux/WindowUtils.cpp
+new file mode 100644
+index 0000000..9f73752
+--- /dev/null
++++ b/UI/platform/linux/WindowUtils.cpp
+@@ -0,0 +1,14 @@
++#include "../WindowUtils.h"
++
++namespace Platform {
++namespace WindowUtils {
++
++void customizeTitleBar(QWidget* window)
++{
++    // On Linux, the title bar is provided by the window manager.
++    // No specific customization is needed.
++    (void)window;
++}
++
++} // namespace WindowUtils
++} // namespace Platform
+diff --git a/cmake/common_settings.cmake b/cmake/common_settings.cmake
+index 8067562..f4d4ac7 100755
+--- a/cmake/common_settings.cmake
++++ b/cmake/common_settings.cmake
+@@ -209,6 +209,18 @@ if(WIN32)
+   apply_windows_settings(Strecs3D)
+ elseif(APPLE)
+   apply_macos_settings(Strecs3D)
++elseif(UNIX)
++  apply_linux_settings(Strecs3D)
++endif()
++
++# Install rules (Linux / Flatpak)
++if(UNIX)
++  install(TARGETS Strecs3D RUNTIME DESTINATION bin)
++  install(FILES ${CMAKE_SOURCE_DIR}/resources/strecs_icon.png
++          DESTINATION share/icons/hicolor/256x256/apps
++          RENAME strecs3d.png)
++  install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
++          DESTINATION share/licenses/Strecs3D)
+ endif()
+ 
+ # VTK 自動初期化設定 (VTK バージョンが 8.90.0 以上の場合)
+diff --git a/cmake/linux_settings.cmake b/cmake/linux_settings.cmake
+new file mode 100644
+index 0000000..ed611d8
+--- /dev/null
++++ b/cmake/linux_settings.cmake
+@@ -0,0 +1,39 @@
++# Linux specific settings for Strecs3D
++#
++# This file is part of the Flatpak port of Strecs3D.
++
++if(CMAKE_BUILD_TYPE STREQUAL "Debug")
++  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
++endif()
++
++set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
++set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib/${CMAKE_PROJECT_NAME}")
++
++function(apply_linux_settings TARGET_NAME)
++  target_include_directories(${TARGET_NAME} PRIVATE ${OpenCASCADE_INCLUDE_DIR})
++
++  target_link_libraries(${TARGET_NAME} PRIVATE
++    Qt6::Core
++    Qt6::Widgets
++    Qt6::Network
++    ${VTK_LIBRARIES}
++    lib3mf::lib3mf
++    libzip::zip
++    pugixml::pugixml
++    $<IF:$<TARGET_EXISTS:gmsh::shared>,gmsh::shared,gmsh::lib>
++    ${OpenCASCADE_LIBRARIES}
++    nlohmann_json::nlohmann_json
++  )
++
++  target_sources(${TARGET_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/UI/platform/linux/WindowUtils.cpp")
++endfunction()
++
++if(Qt6_DIR)
++  get_filename_component(QT_INSTALL_PREFIX "${Qt6_DIR}/../../../" ABSOLUTE)
++  set(QT_PLUGIN_PATH "${QT_INSTALL_PREFIX}/plugins")
++  if(EXISTS "${QT_PLUGIN_PATH}")
++    message(STATUS "Found Qt plugins at: ${QT_PLUGIN_PATH}")
++  else()
++    message(WARNING "Qt plugins not found at ${QT_PLUGIN_PATH}")
++  endif()
++endif()

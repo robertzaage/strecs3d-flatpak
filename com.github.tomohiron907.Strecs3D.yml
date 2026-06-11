@@ -1,0 +1,307 @@
+id: com.github.tomohiron907.Strecs3D
+runtime: org.kde.Platform
+runtime-version: '6.7'
+sdk: org.kde.Sdk
+command: Strecs3D
+rename-icon: strecs3d
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=home
+
+modules:
+  - name: libb2
+    buildsystem: simple
+    build-commands:
+      - ./configure --prefix=/app --disable-static --enable-shared
+      - make -j$(nproc)
+      - make install
+    sources:
+      - type: git
+        url: https://github.com/BLAKE2/libb2.git
+        tag: v0.98.1
+        commit: 2c5142f12a2cd52f3ee0a43e50a3a76f75badf85
+    cleanup:
+      - /include
+      - /lib/*.la
+      - /lib/pkgconfig
+
+  - name: pugixml
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_TESTS=OFF
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: git
+        url: https://github.com/zeux/pugixml.git
+        tag: v1.14
+        commit: db78afc2b7d8f043b4bc6b185635d949ea2ed2a8
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
+  - name: nlohmann_json
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DJSON_BuildTests=OFF
+      - -DJSON_Install=ON
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: git
+        url: https://github.com/nlohmann/json.git
+        tag: v3.11.3
+        commit: 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03
+    cleanup:
+      - /include
+
+  - name: libzip
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DENABLE_GNUTILS=OFF
+      - -DENABLE_OPENSSL=OFF
+      - -DENABLE_MBEDTLS=OFF
+      - -DENABLE_COMMONCRYPTO=OFF
+      - -DBUILD_TOOLS=OFF
+      - -DBUILD_REGRESSION_TESTS=OFF
+      - -DBUILD_EXAMPLES=OFF
+      - -DBUILD_DOC=OFF
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: git
+        url: https://github.com/nih-at/libzip.git
+        tag: v1.10.1
+        commit: 210b09d9d2d0f4c0bbc64f92ad45c1ac53598fec
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
+  - name: lib3mf
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DCMAKE_BUILD_TYPE=Release
+    sources:
+      - type: git
+        url: https://github.com/3MFConsortium/lib3mf.git
+        tag: v2.3.1
+        commit: 23a0a899c940467716456fee3936d756bdf97740
+    post-install:
+      - |
+        mkdir -p /app/lib/cmake/lib3mf
+        cat > /app/lib/cmake/lib3mf/lib3mfConfig.cmake << 'LIB3MFCMAKE'
+        if(NOT TARGET lib3mf::lib3mf)
+          add_library(lib3mf::lib3mf SHARED IMPORTED)
+          set_target_properties(lib3mf::lib3mf PROPERTIES
+            IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../lib3mf.so"
+            INTERFACE_INCLUDE_DIRECTORIES
+              "${CMAKE_CURRENT_LIST_DIR}/../../include/lib3mf/Bindings/Cpp"
+          )
+        endif()
+        LIB3MFCMAKE
+    cleanup:
+      - /include
+      - /lib/pkgconfig
+
+  - name: opencascade
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_LIBRARY_TYPE=Shared
+      - -DINSTALL_DIR=/app
+      # -DINSTALL_DIR_CMAKE is NOT set - use default (lib/cmake/opencascade)
+      # CMake finds OpenCASCADE via CMAKE_PREFIX_PATH:/app -> /app/lib/cmake/opencascade/OpenCASCADEConfig.cmake
+      - -DBUILD_MODULE_Draw=OFF
+      - -DBUILD_MODULE_ApplicationFramework=OFF
+      - -DBUILD_MODULE_DataExchange=ON
+      - -DBUILD_MODULE_FoundationClass=ON
+      - -DBUILD_MODULE_ModelingAlgebra=ON
+      - -DBUILD_MODULE_ModelingAlgorithms=ON
+      - -DBUILD_MODULE_ModelingData=ON
+      - -DBUILD_MODULE_Visualization=OFF
+      - -DUSE_FREEIMAGE=OFF
+      - -DUSE_GL2PS=OFF
+      - -DUSE_TBB=OFF
+      - -DUSE_VTK=OFF
+      - -DUSE_FFMPEG=OFF
+      - -DUSE_OPENVR=OFF
+      - -D3RDPARTY_FREEIMAGE_DIR=
+      - -D3RDPARTY_GL2PS_DIR=
+      - -D3RDPARTY_TBB_DIR=
+    sources:
+      - type: git
+        url: https://github.com/Open-Cascade-SAS/OCCT.git
+        tag: V7_8_1
+        commit: bd2a789f15235755ce4d1a3b07379a2e062fdc2e
+    cleanup:
+      - /include
+      - /lib/cmake/opencascade
+      - /share/doc
+      - /share/opencascade/doc
+
+  - name: vtk
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DBUILD_SHARED_LIBS=ON
+      - -DVTK_BUILD_TESTING=OFF
+      - -DVTK_BUILD_EXAMPLES=OFF
+      - -DVTK_BUILD_DOCUMENTATION=OFF
+      - -DVTK_ENABLE_REMOTE_MODULES=OFF
+      - -DVTK_GROUP_ENABLE_Qt=YES
+      - -DVTK_GROUP_ENABLE_Imaging=YES
+      - -DVTK_GROUP_ENABLE_Rendering=YES
+      - -DVTK_GROUP_ENABLE_Views=NO
+      - -DVTK_GROUP_ENABLE_Web=NO
+      - -DVTK_GROUP_ENABLE_MPI=NO
+      - -DVTK_GROUP_ENABLE_Wrapping=NO
+      - -DVTK_MODULE_ENABLE_VTK_FiltersVerdict=YES
+      - -DVTK_MODULE_ENABLE_VTK_RenderingVtkJS=YES
+      - -DVTK_WRAP_PYTHON=OFF
+      - -DVTK_WRAP_JAVA=OFF
+      - -DVTK_WRAP_TCL=OFF
+      - -DVTK_SMP_ENABLE_OPENMP=ON
+      - -DVTK_USE_MPI=OFF
+      - -DVTK_OPENGL_HAS_OSMESA=OFF
+    sources:
+      - type: git
+        url: https://github.com/Kitware/VTK.git
+        tag: v9.3.1
+        commit: 6ff814d2d2f1a07b977cf9cbab9b62d68d9da051
+    cleanup:
+      - /include
+      - /share/doc
+      - /share/vtk-*
+      - /lib/cmake/vtk-*
+
+  - name: gmsh
+    buildsystem: cmake-ninja
+    builddir: true
+    build-options:
+      env:
+        CASROOT: /app
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_BUILD_SHARED=ON
+      - -DENABLE_BUILD_LIBRARIES=ON
+      - -DENABLE_OPENMP=ON
+      - -DENABLE_FLTK=OFF
+      - -DENABLE_OCC=ON
+      - -DENABLE_PRIVATE_HEADERS=ON
+      - -DENABLE_OPENCV=OFF
+      - -DENABLE_PETSC=OFF
+      - -DENABLE_SLEPC=OFF
+      - -DENABLE_MMG=OFF
+      - -DGMSH_BUILD_DOC=OFF
+      - -DGMSH_BUILD_TESTS=OFF
+    sources:
+      - type: git
+        url: https://github.com/live-clones/gmsh.git
+        tag: gmsh_4_12_2
+        commit: bc6b651adf17a57698ee60d88b305afb4bb216b8
+    post-install:
+      - |
+        mkdir -p /app/lib/cmake/gmsh
+        cat > /app/lib/cmake/gmsh/gmshConfig.cmake << 'GMSHCMAKE'
+        if(NOT TARGET gmsh::shared)
+          add_library(gmsh::shared SHARED IMPORTED)
+          set_target_properties(gmsh::shared PROPERTIES
+            IMPORTED_LOCATION "${CMAKE_CURRENT_LIST_DIR}/../../libgmsh.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../../../include"
+          )
+        endif()
+        GMSHCMAKE
+        cat > /app/lib/cmake/gmsh/gmshConfigVersion.cmake << 'GMSHVER'
+        set(PACKAGE_VERSION "4.12.2")
+        if(PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION)
+          set(PACKAGE_VERSION_COMPATIBLE FALSE)
+        else()
+          set(PACKAGE_VERSION_COMPATIBLE TRUE)
+          if(PACKAGE_FIND_VERSION VERSION_EQUAL PACKAGE_VERSION)
+            set(PACKAGE_VERSION_EXACT TRUE)
+          endif()
+        endif()
+        GMSHVER
+    cleanup:
+      - /include
+      - /share/doc
+
+  - name: Strecs3D
+    buildsystem: cmake-ninja
+    builddir: true
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_SKIP_RPATH=OFF
+      - -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+      - -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+      - -DCMAKE_PREFIX_PATH=/app
+    sources:
+      - type: git
+        url: https://github.com/tomohiron907/Strecs3D.git
+        branch: main
+        commit: 2eb23ab1d00d6e16e591a315486fb983e555e2b3
+        patches:
+          - patches/0001-add-linux-support.patch
+    post-install:
+      - |
+        mkdir -p /app/share/applications /app/share/metainfo
+        cat > /app/share/applications/com.github.tomohiron907.Strecs3D.desktop << 'DESKTOP_EOF'
+        [Desktop Entry]
+        Type=Application
+        Name=Strecs3D
+        Comment=FEM-based infill optimizer for 3D printing
+        Exec=Strecs3D
+        Icon=com.github.tomohiron907.Strecs3D
+        Categories=Graphics;Engineering;
+        Terminal=false
+        StartupNotify=true
+        DESKTOP_EOF
+        cat > /app/share/metainfo/com.github.tomohiron907.Strecs3D.metainfo.xml << 'METAINFO_EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <component type="desktop-application">
+          <id>com.github.tomohiron907.Strecs3D</id>
+          <name>Strecs3D</name>
+          <summary>FEM-based infill optimizer for 3D printing</summary>
+          <developer id="com.github.tomohiron907">
+            <name>Taniguchi Tomohiro</name>
+          </developer>
+          <description>
+            <p>
+              Strecs3D is a preprocessing software that generates optimized
+              infill for 3D printing based on structural analysis results.
+              It automatically sets dense infill for areas under stress and
+              sparse infill for areas without stress, achieving both material
+              savings and strength optimization.
+            </p>
+          </description>
+          <categories>
+            <category>Graphics</category>
+            <category>Engineering</category>
+          </categories>
+          <url type="homepage">https://github.com/tomohiron907/Strecs3D</url>
+          <url type="bugtracker">https://github.com/tomohiron907/Strecs3D/issues</url>
+          <screenshots>
+            <screenshot type="default">
+              <image>https://raw.githubusercontent.com/tomohiron907/Strecs3D/main/image/Strecs3D_screenshot.png</image>
+            </screenshot>
+          </screenshots>
+          <content_rating type="oars-1.1" />
+          <project_license>BSD-3-Clause</project_license>
+          <releases>
+            <release version="2.0.0" date="2026-02-14" />
+          </releases>
+        </component>
+        METAINFO_EOF
+    cleanup:
+      - /include
+      - /lib/cmake
