@@ -1,6 +1,6 @@
 id: com.github.tomohiron907.Strecs3D
 runtime: org.kde.Platform
-runtime-version: '6.10'
+runtime-version: '6.7'
 sdk: org.kde.Sdk
 command: Strecs3D
 rename-icon: strecs3d
@@ -11,10 +11,6 @@ finish-args:
   - --socket=wayland
   - --device=dri
   - --filesystem=home
-
-build-options:
-  env:
-    CMAKE_POLICY_VERSION_MINIMUM: "3.5"
 
 modules:
   - name: libb2
@@ -95,7 +91,6 @@ modules:
       - -DBUILD_SHARED_LIBS=ON
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_INCLUDEDIR=include/lib3mf
-      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       - -DLIB3MF_TESTS=OFF
     sources:
       - type: git
