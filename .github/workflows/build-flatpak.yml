@@ -23,17 +23,25 @@ jobs:
           flatpak --version
           flatpak-builder --version
 
-      - name: Add Flathub remote
-        run: sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+      - name: Configure Flathub remote
+        run: |
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install --noninteractive flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
 
       - name: Build Flatpak
-        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          bundle: Strecs3D.flatpak
-          manifest-path: com.github.tomohiron907.Strecs3D.yml
-          cache-key: flatpak-builder-${{ github.sha }}
-          restore-cache: true
-          build-bundle: true
+        run: |
+          sudo flatpak-builder \
+            --force-clean \
+            --ccache \
+            --install-deps-from=flathub \
+            --repo=repo \
+            --subject="Built from ${{ github.sha }}" \
+            build-dir \
+            com.github.tomohiron907.Strecs3D.yml
+
+      - name: Build bundle
+        run: |
+          sudo flatpak build-bundle repo Strecs3D.flatpak com.github.tomohiron907.Strecs3D
 
       - name: Upload Flatpak artifact
         uses: actions/upload-artifact@v4
