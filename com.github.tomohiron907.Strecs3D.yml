@@ -16,6 +16,7 @@ modules:
   - name: libb2
     buildsystem: simple
     build-commands:
+      - NOCONFIGURE=1 ./autogen.sh
       - ./configure --prefix=/app --disable-static --enable-shared
       - make -j$(nproc)
       - make install
