@@ -1,6 +1,6 @@
 id: com.github.tomohiron907.Strecs3D
 runtime: org.kde.Platform
-runtime-version: '6.7'
+runtime-version: '6.10'
 sdk: org.kde.Sdk
 command: Strecs3D
 rename-icon: strecs3d
@@ -271,6 +271,8 @@ modules:
         <?xml version="1.0" encoding="UTF-8"?>
         <component type="desktop-application">
           <id>com.github.tomohiron907.Strecs3D</id>
+          <metadata_license>CC0-1.0</metadata_license>
+          <project_license>BSD-3-Clause</project_license>
           <name>Strecs3D</name>
           <summary>FEM-based infill optimizer for 3D printing</summary>
           <developer id="com.github.tomohiron907">
@@ -291,13 +293,14 @@ modules:
           </categories>
           <url type="homepage">https://github.com/tomohiron907/Strecs3D</url>
           <url type="bugtracker">https://github.com/tomohiron907/Strecs3D/issues</url>
+          <launchable type="desktop-id">com.github.tomohiron907.Strecs3D.desktop</launchable>
           <screenshots>
             <screenshot type="default">
               <image>https://raw.githubusercontent.com/tomohiron907/Strecs3D/main/image/Strecs3D_screenshot.png</image>
             </screenshot>
           </screenshots>
-          <content_rating type="oars-1.1" />
-          <project_license>BSD-3-Clause</project_license>
+          <content_rating type="oars-1.1">
+          </content_rating>
           <releases>
             <release version="2.0.0" date="2026-02-14" />
           </releases>
