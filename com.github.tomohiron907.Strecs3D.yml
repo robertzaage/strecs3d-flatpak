@@ -307,6 +307,55 @@ modules:
           </releases>
         </component>
         METAINFO_EOF
+        python3 << 'PYEOF'
+import struct, zlib, sys
+with open("/app/share/icons/hicolor/256x256/apps/strecs3d.png", "rb") as f:
+    data = f.read()
+pos, ihdr_data, idat_chunks = 8, None, []
+while pos < len(data):
+    l = struct.unpack(">I", data[pos:pos+4])[0]
+    ct = data[pos+4:pos+8]; cd = data[pos+8:pos+8+l]; pos += 12 + l
+    if ct == b"IHDR": ihdr_data = cd
+    elif ct == b"IDAT": idat_chunks.append(cd)
+w, h = struct.unpack(">II", ihdr_data[:8])
+bpp, raw = 4, zlib.decompress(b"".join(idat_chunks))
+rows = [raw[i:i+1+w*bpp] for i in range(0, len(raw), 1+w*bpp)]
+def pp(a, b, c):
+    p = a + b - c
+    pa, pb, pc = abs(p-a), abs(p-b), abs(p-c)
+    return a if pa <= pb and pa <= pc else (b if pb <= pc else c)
+def unf(r, p):
+    f, px = r[0], bytearray(r[1:])
+    if f == 1:
+        for i in range(bpp, len(px)): px[i] = (px[i] + px[i-bpp]) & 0xFF
+    elif f == 2:
+        for i in range(len(px)): px[i] = (px[i] + p[i]) & 0xFF
+    elif f == 3:
+        for i in range(bpp): px[i] = (px[i] + p[i]//2) & 0xFF
+        for i in range(bpp, len(px)): px[i] = (px[i] + (px[i-bpp] + p[i])//2) & 0xFF
+    elif f == 4:
+        for i in range(len(px)):
+            a = px[i-bpp] if i >= bpp else 0
+            b, c = p[i], p[i-bpp] if i >= bpp else 0
+            px[i] = (px[i] + pp(a, b, c)) & 0xFF
+    return bytes(px)
+pr, pix = b"\x00" * (w * bpp), []
+for r in rows:
+    u = unf(r, pr); pix.append(u); pr = u
+nw, nh = 256, 256
+nr = bytearray()
+for y in range(nh):
+    sy = int(y * h / nh); nr.append(0)
+    for x in range(nw):
+        sx = int(x * w / nw)
+        nr.extend(pix[sy][sx*bpp:(sx+1)*bpp])
+cd = zlib.compress(bytes(nr))
+out = b"\x89PNG\r\n\x1a\n"
+for t, d in [(b"IHDR", struct.pack(">IIBBBBB", nw, nh, 8, 6, 0, 0, 0)), (b"IDAT", cd), (b"IEND", b"")]:
+    out += struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+with open("/app/share/icons/hicolor/256x256/apps/strecs3d.png", "wb") as f:
+    f.write(out)
+PYEOF
     cleanup:
       - /include
       - /lib/cmake
