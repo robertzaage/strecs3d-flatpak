@@ -247,6 +247,10 @@ modules:
       - -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
       - -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
       - -DCMAKE_PREFIX_PATH=/app
+    build-options:
+      env:
+        VERSION: "@@VERSION@@"
+        DATE: "@@DATE@@"
     sources:
       - type: git
         url: https://github.com/tomohiron907/Strecs3D.git
@@ -268,7 +272,7 @@ modules:
         Terminal=false
         StartupNotify=true
         DESKTOP_EOF
-        cat > /app/share/metainfo/com.github.tomohiron907.Strecs3D.metainfo.xml << 'METAINFO_EOF'
+        cat > /app/share/metainfo/com.github.tomohiron907.Strecs3D.metainfo.xml << METAINFO_EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <component type="desktop-application">
           <id>com.github.tomohiron907.Strecs3D</id>
@@ -303,7 +307,7 @@ modules:
           <content_rating type="oars-1.1">
           </content_rating>
           <releases>
-            <release version="2.0.0" date="2026-02-14" />
+            <release version="${VERSION}" date="${DATE}" />
           </releases>
         </component>
         METAINFO_EOF

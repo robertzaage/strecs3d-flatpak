@@ -3,18 +3,53 @@ name: Build Flatpak
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Upstream Strecs3D tag (e.g. v2.0.0)'
+        required: false
+
+permissions:
+  contents: write
+  actions: read
 
 jobs:
   flatpak:
     name: Flatpak Build
     runs-on: ubuntu-latest
-
+    outputs:
+      version: ${{ steps.prep.outputs.version }}
+      upstream_changelog: ${{ steps.prep.outputs.upstream_changelog }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Determine version
+        id: prep
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            # Tag push: strip 'v' prefix
+            VERSION="${GITHUB_REF_NAME#v}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            # Manual dispatch: use input, strip 'v' if present
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          else
+            # Normal push/PR: use dev version with short SHA
+            VERSION="dev-$(echo $GITHUB_SHA | cut -c1-7)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          DATE=$(date +%Y-%m-%d)
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION (date: $DATE)"
+
+      - name: Inject version into manifest
+        run: |
+          sed -i "s/@@VERSION@@/${{ steps.prep.outputs.version }}/g" com.github.tomohiron907.Strecs3D.yml
+          sed -i "s/@@DATE@@/${{ steps.prep.outputs.date }}/g" com.github.tomohiron907.Strecs3D.yml
 
       - name: Install flatpak and flatpak-builder
         run: |
@@ -35,7 +70,7 @@ jobs:
             --ccache \
             --install-deps-from=flathub \
             --repo=repo \
-            --subject="Built from ${{ github.sha }}" \
+            --subject="Streics3D ${{ steps.prep.outputs.version }}" \
             build-dir \
             com.github.tomohiron907.Strecs3D.yml
 
@@ -56,17 +91,46 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: Strecs3D-x86_64
+
+      - name: Fetch upstream release notes
+        id: changelog
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Fetch release info from upstream repo
+          RELEASE=$(gh api repos/tomohiron907/Strecs3D/releases/tags/$TAG --jq '{body: .body, url: .html_url}' 2>/dev/null || echo '{"body":"","url":""}')
+          BODY=$(echo "$RELEASE" | jq -r '.body')
+          URL=$(echo "$RELEASE" | jq -r '.url')
+          if [ -n "$BODY" ] && [ "$BODY" != "null" ]; then
+            {
+              echo "changelog<<EOF"
+              echo "## Upstream Changes ($TAG)"
+              echo ""
+              echo "$BODY"
+              echo ""
+              echo "[View on GitHub]($URL)"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "changelog=No upstream release notes found." >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: Strecs3D Flatpak ${{ github.ref_name }}
           body: |
-            Flatpak build of Strecs3D ${{ github.ref_name }}
+            Flatpak build of [Strecs3D](https://github.com/tomohiron907/Strecs3D) **${{ github.ref_name }}**.
+
+            ${{ steps.changelog.outputs.changelog }}
 
             ## Installation
             ```bash
@@ -78,4 +142,3 @@ jobs:
             flatpak run com.github.tomohiron907.Strecs3D
             ```
           files: Strecs3D.flatpak
-          generate_release_notes: true
